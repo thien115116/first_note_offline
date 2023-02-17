@@ -1,10 +1,5 @@
 <template>
   <div class="container-fluid">
-    <div class="mb-5">
-      <button class="btn btn-primary">
-        Access Offline Mode
-      </button>
-    </div>
     <SimpleForm />
     </div>
 </template>
