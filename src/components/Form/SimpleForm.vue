@@ -102,10 +102,11 @@ export default {
     async fileChange(e) {
       const files = e.target.files;
       if (!files) return;
-      Array.from(files).forEach(async(file) => {
+      Array.from(files).forEach(async (file) => {
+        console.log(this);
         const base64 = await this.convertToBase64(file);
-        this.images.push((base64));
-        this.conservationReports.files.push(base64)
+        this.images?.push((base64));
+        this.conservationReports?.files?.push(base64)
       });
     },
     convertToBase64(file) {
