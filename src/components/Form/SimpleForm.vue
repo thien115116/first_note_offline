@@ -1,62 +1,85 @@
 <template>
-  <div>
+  <div class="form-group">
     <label for="name">Name:</label>
-    <input id="name" v-model="name">
+    <input class="form-control" id="name" v-model="conservationReports.name" />
+  </div>
+  <div class="form-group">
+    <label for="name">Phone Number:</label>
+    <input
+      class="form-control"
+      id="phoneNumber"
+      type="text"
+      v-model="conservationReports.phoneNumber"
+    />
   </div>
 </template>
 
 <script>
-import { openDB } from 'idb';
+import { openDB } from "idb";
 
-const dbPromise = openDB('my-db', 1, {
+const dbPromise = openDB("valqua-spm", 1, {
   upgrade(db) {
-    db.createObjectStore('inputs');
-  }
+    db.createObjectStore("conservationReports");
+  },
 });
 
 export default {
   data() {
     return {
-      name: ''
+      conservationReports: {
+        name: "",
+        phoneNumber: "",
+      },
     };
   },
   mounted() {
     dbPromise.then(db => {
-      return db.get('inputs', 'name');
+      return db.get('conservationReports', 'conservationReports');
     }).then(value => {
       if (value) {
-        this.name = value;
+        this.conservationReports = JSON.parse(value);
       }
     });
   },
   watch: {
-    name(newValue) {
-      dbPromise.then(db => {
-        return db.put('inputs', newValue, 'name');
-      });
-    }
+    conservationReports: {
+      handler() {
+        console.log(this.conservationReports);
+        dbPromise.then((db) => {
+          return db.put(
+            "conservationReports",
+            JSON.stringify(this.conservationReports),
+            "conservationReports"
+          );
+        });
+      },
+      deep: true,
+    },
   },
   created() {
-    window.addEventListener('offline', () => {
+    window.addEventListener("offline", () => {
       // Set a flag in IndexedDB indicating the app is offline
-      dbPromise.then(db => {
-        return db.put('inputs', 'true', 'offline');
+      dbPromise.then((db) => {
+        return db.put("conservationReports", "true", "offline");
       });
     });
-    window.addEventListener('online', () => {
+    window.addEventListener("online", () => {
       // Remove the flag from IndexedDB when the app is online again
-      dbPromise.then(db => {
-        return db.delete('inputs', 'offline');
+      dbPromise.then((db) => {
+        return db.delete("conservationReports", "offline");
       });
       // Update the input values from IndexedDB
-      dbPromise.then(db => {
-        return db.get('inputs', 'name');
-      }).then(value => {
-        if (value) {
-          this.name = value;
+      dbPromise
+        .then((db) => {
+          return db.get("conservationReports", 'conservationReports');
+        })
+        .then((value) => {
+          if (value) {
+            this.conservationReports = JSON.parse(value);
+          alert('Go Online Please Submit Form')
         }
-      });
+        });
     });
-  }
+  },
 };
 </script>
