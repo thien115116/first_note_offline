@@ -146,9 +146,12 @@ export default {
       });
     },
     resetIndexDb() {
-      console.log("a");
       dbPromise.then((db) => {
         return db.clear("conservationReports");
+      });
+      this.conservationReports = { name: "", phoneNumber: "", files: [] };
+      caches.keys().then(function (names) {
+        for (let name of names) caches.delete(name);
       });
     },
   },
