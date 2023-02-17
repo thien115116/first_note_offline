@@ -1,18 +1,19 @@
 <template>
-  <div class="mb-5">
+  <div class="mb-3 d-flex">
     <label
       :class="[`btn btn-${status === 'online' ? 'primary' : 'secondary'}`]"
     >
       You are {{ status }} now
     </label>
+    <button class="btn btn-warning ms-3" @click="resetIndexDb">Reset</button>
   </div>
-  <button class="btn btn-warning" @click="resetIndexDb">Reset</button>
-  <h3 class="text-left">Offline Notes</h3>
-  <div class="form-group">
+
+  <h3 class="text-start">Offline Notes</h3>
+  <div class="form-group text-start">
     <label for="name" class="mb-2">Name:</label>
     <input class="form-control" id="name" v-model="conservationReports.name" />
   </div>
-  <div class="form-group mt-3">
+  <div class="form-group mt-3 text-start">
     <label for="phoneNumber" class="mb-2">Phone Number:</label>
     <input
       class="form-control"
@@ -21,7 +22,31 @@
       v-model="conservationReports.phoneNumber"
     />
   </div>
-  <div class="form-group mt-3">
+  <div class="d-flex mt-3 text-start">
+<div class="d-flex">
+      <label for="sex_boy" class="me-2">Boy</label>
+      <input
+      id="sex_boy"
+        class="form-check"
+        name="sex"
+        type="radio"
+        :checked="conservationReports.sex === 'boy' ? 'checked':''"
+        @change="changeSex('boy')"
+      />
+</div>
+<div class="ms-3 d-flex">
+      <label for="sex_girl" class="me-2">Girl</label>
+      <input
+      id="sex_girl"
+        class="form-check"
+        name="sex"
+        type="radio"
+        :checked="conservationReports.sex === 'girl' ? 'checked':''"
+        @change="changeSex('girl')"
+      />
+</div>
+  </div>
+  <div class="form-group mt-3 text-start">
     <label for="file" class="mb-2">File</label>
     <input
       class="form-control"
@@ -154,6 +179,9 @@ export default {
         for (let name of names) caches.delete(name);
       });
     },
+    changeSex(sex) {
+      this.conservationReports.sex = sex;
+    }
   },
 };
 </script>
