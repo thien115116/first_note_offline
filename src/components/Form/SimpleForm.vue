@@ -71,13 +71,28 @@
 <script>
 import { openDB } from "idb";
 const objectStoreName = 'conservationReport_' + Date.now();
+
+function setQueryStringParameter(name, value) {
+    const params = new URLSearchParams(window.location.search);
+    params.set(name, value);
+    window.history.replaceState({}, "", decodeURIComponent(`${window.location.pathname}?${params}`));
+}
+
 const dbPromise = openDB("valqua-spm", Date.now(), {
   upgrade(db) {
     if (!db.objectStoreNames.contains(objectStoreName)) {
-    db.createObjectStore(objectStoreName);
+      db.createObjectStore(objectStoreName);
   }
   },
 });
+const request = indexedDB.open('valqua-spm', Date.now());
+request.onsuccess = function(event) {
+  const db = event.target.result;
+  console.log(`Database connection successful for ${objectStoreName}`);
+  // Use the database connection and object store here
+  console.log(db);
+  setQueryStringParameter("pageId", objectStoreName)
+};
 export default {
   data() {
     return {
@@ -88,15 +103,17 @@ export default {
       },
       images: [],
       status: "online",
+      pageId:''
     };
   },
   mounted() {
     dbPromise
       .then((db) => {
-        return db.get(objectStoreName, "conservationReports");
+        return db.get(this.pageId, "conservationReports");
       })
       .then((value) => {
         if (value) {
+          console.log(value);
           this.conservationReports = JSON.parse(value);
           this.images = this.conservationReports.files;
         }
@@ -107,7 +124,7 @@ export default {
       handler() {
         dbPromise.then((db) => {
           return db.put(
-            objectStoreName,
+            this.pageId,
             JSON.stringify(this.conservationReports),
             "conservationReports"
           );
@@ -117,26 +134,28 @@ export default {
     },
   },
   created() {
+    this.pageId = new URLSearchParams(window.location.search).get('pageId');
     window.addEventListener("offline", () => {
       this.status = "offline";
       // Set a flag in IndexedDB indicating the app is offline
       dbPromise.then((db) => {
-        return db.put(objectStoreName, "true", "offline");
+        return db.put(this.pageId, "true", "offline");
       });
     });
     window.addEventListener("online", () => {
       this.status = "online";
       // Remove the flag from IndexedDB when the app is online again
       dbPromise.then((db) => {
-        return db.delete(objectStoreName, "offline");
+        return db.delete(this.pageId, "offline");
       });
       // Update the input values from IndexedDB
       dbPromise
         .then((db) => {
-          return db.get(objectStoreName, "conservationReports");
+          return db.get(this.pageId, "conservationReports");
         })
         .then((value) => {
           if (value) {
+            console.log(value);
             this.conservationReports = JSON.parse(value);
           }
         });
@@ -175,7 +194,7 @@ export default {
     },
     resetIndexDb() {
       dbPromise.then((db) => {
-        return db.clear(objectStoreName);
+        return db.clear(this.pageId);
       });
       this.conservationReports = { name: "", phoneNumber: "", files: [] };
       caches.keys().then(function (names) {
