@@ -70,9 +70,12 @@
 
 <script>
 import { openDB } from "idb";
-const dbPromise = openDB("valqua-spm", 1, {
+const objectStoreName = 'conservationReport_' + Date.now();
+const dbPromise = openDB("valqua-spm", Date.now(), {
   upgrade(db) {
-    db.createObjectStore("conservationReports");
+    if (!db.objectStoreNames.contains(objectStoreName)) {
+    db.createObjectStore(objectStoreName);
+  }
   },
 });
 export default {
@@ -90,7 +93,7 @@ export default {
   mounted() {
     dbPromise
       .then((db) => {
-        return db.get("conservationReports", "conservationReports");
+        return db.get(objectStoreName, "conservationReports");
       })
       .then((value) => {
         if (value) {
@@ -104,7 +107,7 @@ export default {
       handler() {
         dbPromise.then((db) => {
           return db.put(
-            "conservationReports",
+            objectStoreName,
             JSON.stringify(this.conservationReports),
             "conservationReports"
           );
@@ -118,19 +121,19 @@ export default {
       this.status = "offline";
       // Set a flag in IndexedDB indicating the app is offline
       dbPromise.then((db) => {
-        return db.put("conservationReports", "true", "offline");
+        return db.put(objectStoreName, "true", "offline");
       });
     });
     window.addEventListener("online", () => {
       this.status = "online";
       // Remove the flag from IndexedDB when the app is online again
       dbPromise.then((db) => {
-        return db.delete("conservationReports", "offline");
+        return db.delete(objectStoreName, "offline");
       });
       // Update the input values from IndexedDB
       dbPromise
         .then((db) => {
-          return db.get("conservationReports", "conservationReports");
+          return db.get(objectStoreName, "conservationReports");
         })
         .then((value) => {
           if (value) {
@@ -172,7 +175,7 @@ export default {
     },
     resetIndexDb() {
       dbPromise.then((db) => {
-        return db.clear("conservationReports");
+        return db.clear(objectStoreName);
       });
       this.conservationReports = { name: "", phoneNumber: "", files: [] };
       caches.keys().then(function (names) {
