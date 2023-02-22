@@ -70,6 +70,21 @@
 
 <script>
 import { openDB } from "idb";
+
+const defaultPageId = new URLSearchParams(window.location.search).get('pageId');
+
+const now = Date.now()
+
+const objectStoreName = defaultPageId || now;
+
+function setQueryStringParameter(name, value) {
+    const params = new URLSearchParams(window.location.search);
+    params.set(name, value);
+    window.history.replaceState({}, "", decodeURIComponent(`${window.location.pathname}?${params}`));
+}
+
+setQueryStringParameter('pageId', objectStoreName)
+
 const dbPromise = openDB("valqua-spm", 1, {
   upgrade(db) {
     db.createObjectStore("conservationReports");
@@ -85,6 +100,7 @@ export default {
       },
       images: [],
       status: "online",
+      pageId: objectStoreName
     };
   },
   mounted() {
@@ -94,18 +110,35 @@ export default {
       })
       .then((value) => {
         if (value) {
-          this.conservationReports = JSON.parse(value);
-          this.images = this.conservationReports.files;
+          console.log(value);
+          try {
+            const tmp = JSON.parse(value)[this.pageId];
+            if (tmp) {
+              this.conservationReports = tmp
+              this.images = this.conservationReports.files;
+            }
+          } catch (error) {
+            console.log('err', error)
+          }
         }
       });
   },
   watch: {
     conservationReports: {
       handler() {
-        dbPromise.then((db) => {
+        dbPromise.then(async (db) => {
+          const data = await db.get("conservationReports", "conservationReports")
+
+          let tmp = {}
+          try {
+            tmp = JSON.parse(data)
+          } catch (error) {
+            tmp[this.pageId] = {}
+          }
+          tmp[this.pageId] = this.conservationReports
           return db.put(
             "conservationReports",
-            JSON.stringify(this.conservationReports),
+            JSON.stringify(tmp),
             "conservationReports"
           );
         });
@@ -134,6 +167,7 @@ export default {
         })
         .then((value) => {
           if (value) {
+            console.log(value);
             this.conservationReports = JSON.parse(value);
           }
         });
@@ -172,7 +206,7 @@ export default {
     },
     resetIndexDb() {
       dbPromise.then((db) => {
-        return db.clear("conservationReports");
+        return db.clear(this.pageId);
       });
       this.conservationReports = { name: "", phoneNumber: "", files: [] };
       caches.keys().then(function (names) {
