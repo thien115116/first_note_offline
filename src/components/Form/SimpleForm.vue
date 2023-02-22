@@ -70,7 +70,7 @@
 
 <script>
 import { openDB } from "idb";
-const objectStoreName = 'conservationReport_' + Date.now();
+const objectStoreName = Date.now();
 
 function setQueryStringParameter(name, value) {
     const params = new URLSearchParams(window.location.search);
@@ -78,21 +78,7 @@ function setQueryStringParameter(name, value) {
     window.history.replaceState({}, "", decodeURIComponent(`${window.location.pathname}?${params}`));
 }
 
-const dbPromise = openDB("valqua-spm", Date.now(), {
-  upgrade(db) {
-    if (!db.objectStoreNames.contains(objectStoreName)) {
-      db.createObjectStore(objectStoreName);
-  }
-  },
-});
-const request = indexedDB.open('valqua-spm', Date.now());
-request.onsuccess = function(event) {
-  const db = event.target.result;
-  console.log(`Database connection successful for ${objectStoreName}`);
-  // Use the database connection and object store here
-  console.log(db);
-  setQueryStringParameter("pageId", objectStoreName)
-};
+
 export default {
   data() {
     return {
@@ -106,23 +92,23 @@ export default {
       pageId:''
     };
   },
-  mounted() {
-    dbPromise
-      .then((db) => {
-        return db.get(this.pageId, "conservationReports");
-      })
-      .then((value) => {
-        if (value) {
-          console.log(value);
-          this.conservationReports = JSON.parse(value);
-          this.images = this.conservationReports.files;
-        }
-      });
-  },
+  // mounted() {
+  //   this.dbPromise
+  //     .then((db) => {
+  //       return db.get(this.pageId, "conservationReports");
+  //     })
+  //     .then((value) => {
+  //       if (value) {
+  //         console.log(value);
+  //         this.conservationReports = JSON.parse(value);
+  //         this.images = this.conservationReports.files;
+  //       }
+  //     });
+  // },
   watch: {
     conservationReports: {
       handler() {
-        dbPromise.then((db) => {
+        this.dbPromise.then((db) => {
           return db.put(
             this.pageId,
             JSON.stringify(this.conservationReports),
@@ -133,23 +119,36 @@ export default {
       deep: true,
     },
   },
-  created() {
-    this.pageId = new URLSearchParams(window.location.search).get('pageId');
+  async created() {
+    // this.pageId = new URLSearchParams(window.location.search).get('pageId');
+    await this.initDB();
+    this.dbPromise
+      .then((db) => {
+        return db.get(this.pageId, "conservationReports");
+      })
+      .then((value) => {
+        if (value) {
+          console.log(value);
+          this.conservationReports = JSON.parse(value);
+          this.images = this.conservationReports.files;
+        }
+      });
+
     window.addEventListener("offline", () => {
       this.status = "offline";
       // Set a flag in IndexedDB indicating the app is offline
-      dbPromise.then((db) => {
+      this.dbPromise.then((db) => {
         return db.put(this.pageId, "true", "offline");
       });
     });
     window.addEventListener("online", () => {
       this.status = "online";
       // Remove the flag from IndexedDB when the app is online again
-      dbPromise.then((db) => {
+      this.dbPromise.then((db) => {
         return db.delete(this.pageId, "offline");
       });
       // Update the input values from IndexedDB
-      dbPromise
+      this.dbPromise
         .then((db) => {
           return db.get(this.pageId, "conservationReports");
         })
@@ -162,6 +161,44 @@ export default {
     });
   },
   methods: {
+    initDB() {
+      return new Promise((resolve) => {
+        const pageId = new URLSearchParams(window.location.search).get('pageId');
+        if (pageId) {
+          this.pageId = pageId
+        } else {
+          this.pageId = objectStoreName
+          setQueryStringParameter("pageId", this.pageId)
+        }
+
+        this.dbPromise = openDB("valqua-spm", Number(this.pageId), {
+          upgrade(db) {
+            console.log('111')
+            if (!db.objectStoreNames.contains(self.pageId)) {
+              console.log('222')
+              db.createObjectStore(self.pageId);
+            }
+            resolve()
+          },
+        });
+
+        const self = this;
+
+        console.log('pageId', pageId)
+        // const request = indexedDB.open('valqua-spm', Date.now());
+        // request.onsuccess = function(event) {
+        //   console.log('333')
+        //   const db = event.target.result;
+        //   console.log(`Database connection successful for ${self.pageId}`);
+        //   // Use the database connection and object store here
+        //   console.log(db);
+        //   // if (!pageId) {
+        //   //   setQueryStringParameter("pageId", self.pageId)
+        //   // }
+        //   resolve()
+        // };
+      })
+    },
     async fileChange(e) {
       const files = e.target.files;
       if (!files) return;
@@ -193,7 +230,7 @@ export default {
       });
     },
     resetIndexDb() {
-      dbPromise.then((db) => {
+      this.dbPromise.then((db) => {
         return db.clear(this.pageId);
       });
       this.conservationReports = { name: "", phoneNumber: "", files: [] };
